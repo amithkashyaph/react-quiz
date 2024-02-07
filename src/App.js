@@ -9,6 +9,11 @@ import StartScreen from "./components/StartScreen";
 import Question from "./components/Question";
 import NextButton from "./components/NextButton";
 import Progress from "./components/Progress";
+import FinishScreen from "./components/FinishScreen";
+import Footer from "./components/Footer";
+import Timer from "./components/Timer";
+
+const TIME_PER_QUESTION = 30;
 
 const initialState = {
   questions: [],
@@ -16,6 +21,8 @@ const initialState = {
   index: 0,
   answer: null,
   points: 0,
+  highScore: 0,
+  secondsRemaining: 10,
 };
 
 const reducer = (state, action) => {
@@ -36,6 +43,7 @@ const reducer = (state, action) => {
       return {
         ...state,
         status: "active",
+        secondsRemaining: state.questions.length * TIME_PER_QUESTION,
       };
     }
     case "newAnswer": {
@@ -54,6 +62,30 @@ const reducer = (state, action) => {
         ...state,
         index: state.index + 1,
         answer: null,
+      };
+    case "finish":
+      return {
+        ...state,
+        status: "finish",
+        highScore:
+          state.highScore > state.points ? state.highScore : state.points,
+      };
+
+    case "restart":
+      return {
+        ...state,
+        index: 0,
+        answer: null,
+        points: 0,
+        status: "active",
+        secondsRemaining: 10,
+      };
+
+    case "tick":
+      return {
+        ...state,
+        secondsRemaining: state.secondsRemaining - 1,
+        status: state.secondsRemaining === 0 ? "finish" : state.status,
       };
     default:
       throw new Error("Unknown action dispatched!");
@@ -76,7 +108,15 @@ function App() {
       })
       .catch((error) => dispatch({ type: "dataFailed" }));
   }, []);
-  const { questions, index, status, answer, points } = state;
+  const {
+    questions,
+    index,
+    status,
+    answer,
+    points,
+    highScore,
+    secondsRemaining,
+  } = state;
   return (
     <div className="App">
       <Header />
@@ -100,8 +140,24 @@ function App() {
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton dispatch={dispatch} answer={answer} />
+            <Footer>
+              <Timer dispatch={dispatch} secondsRemaining={secondsRemaining} />
+              <NextButton
+                dispatch={dispatch}
+                answer={answer}
+                index={index}
+                totalQuestions={questions.length}
+              />
+            </Footer>
           </>
+        )}
+        {status === "finish" && (
+          <FinishScreen
+            points={points}
+            totalPoints={totalPoints}
+            highScore={highScore}
+            dispatch={dispatch}
+          />
         )}
       </Main>
     </div>
